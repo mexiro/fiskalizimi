@@ -1,0 +1,57 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(httr)
+library(tidyverse)
+library(rvest)
+library(xml2)
+install.packages("V8")
+library(V8)
+
+
+
+https://www.google.com/search?q=scraping+in+r+after+javascript+rendered+web+pages&oq=scrape+in+r+after+js+rendere&aqs=chrome.1.69i57j33i22i29i30.9414j0j4&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/26631511/scraping-javascript-website-in-r
+https://www.r-bloggers.com/2018/12/how-to-scrape-data-from-a-javascript-website-with-r/
+  https://datascienceplus.com/scraping-javascript-rendered-web-content-using-r/
+  https://www.r-bloggers.com/2019/07/scraping-dynamic-websites-with-phantomjs/
+
+#URL with js-rendered content to be scraped
+link <- 'https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?iic=62AC7297F5630E8F1164397B3C444408&tin=L62203504M&crtd=2021-07-06T16:13:50%2002:00&ord=4536&bu=td433no981&cr=kk646wq776&sw=cc302yz654&prc=582104.00'
+#Read the html page content and extract all javascript codes that are inside a list
+emailjs <- read_html(link) %>% html_nodes('li') %>% html_nodes('script') %>% html_text()
+# Create a new v8 context
+ct <- v8()
+#parse the html content from the js output and print it as text
+read_html(ct$eval(gsub('document.write','',emailjs))) %>% 
+ html_text()
+
+status_code(r)
+headers(r)
+http_status(r)
+
+
+query <- list(
+  iic = "62AC7297F5630E8F1164397B3C444408",
+  tin = "L62203504M",
+  crtd = "2021-07-06T16:13:50%2002:00",
+  ord = "4536",
+  bu = "td433no981",
+  sw = "cc302yz654",
+  prc = "582104.00"
+)
+res <- GET("https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?", query = query)
+http_status(res)
+http_type(res)
+
+
+
+page <- read_html(content(res, "text")) 
+print(page)
+```
+
