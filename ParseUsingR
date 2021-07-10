@@ -10,7 +10,7 @@ library(httr)
 library(tidyverse)
 library(rvest)
 library(xml2)
-install.packages("V8")
+#install.packages("V8")
 library(V8)
 
 
@@ -54,4 +54,61 @@ http_type(res)
 page <- read_html(content(res, "text")) 
 print(page)
 ```
+
+```{r}
+#install.packages("RSelenium")
+library('RSelenium')
+#install.packages("wdman")
+library(wdman)
+
+selServ <- selenium(verbose = TRUE, check = FALSE)
+selServ$process
+selServ$log()
+
+remDr <- remoteDriver(
+  remoteServerAddr = "localhost",
+  port = 4567L,
+  browserName = "firefox"
+)
+remDr$open()
+remDr$getStatus()
+
+remDr$navigate("https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?iic=62AC7297F5630E8F1164397B3C444408&tin=L62203504M&crtd=2021-07-06T16:13:50%2002:00&ord=4536&bu=td433no981&cr=kk646wq776&sw=cc302yz654&prc=582104.00")
+
+#ketu
+webElem <- remDr$findElement(using = "xpath", "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")
+nsfl<-webElem$elementId
+
+webElem <-NULL
+while(is.null(webElem)){
+  webElem <- tryCatch({remDr$findElement(using = 'name', value = "<value>")},
+  error = function(e){NULL})
+ #loop until element with name <value> is found in <webpage url>
+}
+
+
+
+#To  stop the server
+selServ$stop()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
