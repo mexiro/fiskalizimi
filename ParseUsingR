@@ -6,65 +6,19 @@ output: html_notebook
 
 
 ```{r}
-library(httr)
-library(tidyverse)
-library(rvest)
-library(xml2)
-#install.packages("V8")
-library(V8)
-
-
-
-https://www.google.com/search?q=scraping+in+r+after+javascript+rendered+web+pages&oq=scrape+in+r+after+js+rendere&aqs=chrome.1.69i57j33i22i29i30.9414j0j4&sourceid=chrome&ie=UTF-8
-https://stackoverflow.com/questions/26631511/scraping-javascript-website-in-r
-https://www.r-bloggers.com/2018/12/how-to-scrape-data-from-a-javascript-website-with-r/
-  https://datascienceplus.com/scraping-javascript-rendered-web-content-using-r/
-  https://www.r-bloggers.com/2019/07/scraping-dynamic-websites-with-phantomjs/
-
-#URL with js-rendered content to be scraped
-link <- 'https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?iic=62AC7297F5630E8F1164397B3C444408&tin=L62203504M&crtd=2021-07-06T16:13:50%2002:00&ord=4536&bu=td433no981&cr=kk646wq776&sw=cc302yz654&prc=582104.00'
-#Read the html page content and extract all javascript codes that are inside a list
-emailjs <- read_html(link) %>% html_nodes('li') %>% html_nodes('script') %>% html_text()
-# Create a new v8 context
-ct <- v8()
-#parse the html content from the js output and print it as text
-read_html(ct$eval(gsub('document.write','',emailjs))) %>% 
- html_text()
-
-status_code(r)
-headers(r)
-http_status(r)
-
-
-query <- list(
-  iic = "62AC7297F5630E8F1164397B3C444408",
-  tin = "L62203504M",
-  crtd = "2021-07-06T16:13:50%2002:00",
-  ord = "4536",
-  bu = "td433no981",
-  sw = "cc302yz654",
-  prc = "582104.00"
-)
-res <- GET("https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?", query = query)
-http_status(res)
-http_type(res)
-
-
-
-page <- read_html(content(res, "text")) 
-print(page)
-```
-
-```{r}
 #install.packages("RSelenium")
-library('RSelenium')
+library(RSelenium)
 #install.packages("wdman")
 library(wdman)
+library(tidyverse)
+library(plyr) 
+
 
 selServ <- selenium(verbose = TRUE, check = FALSE)
 selServ$process
 selServ$log()
 
+### HAP Serverin
 remDr <- remoteDriver(
   remoteServerAddr = "localhost",
   port = 4567L,
@@ -73,42 +27,63 @@ remDr <- remoteDriver(
 remDr$open()
 remDr$getStatus()
 
-remDr$navigate("https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?iic=62AC7297F5630E8F1164397B3C444408&tin=L62203504M&crtd=2021-07-06T16:13:50%2002:00&ord=4536&bu=td433no981&cr=kk646wq776&sw=cc302yz654&prc=582104.00")
 
-#ketu
-webElem <- remDr$findElement(using = "xpath", "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")
-nsfl<-webElem$elementId
+# AUTOMATE BILLS HERE
+#QrUrl <- "https://webscraper.io/test-sites/tables" Test
+QrUrl <- "https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?iic=62AC7297F5630E8F1164397B3C444408&tin=L62203504M&crtd=2021-07-06T16:13:50%2002:00&ord=4536&bu=td433no981&cr=kk646wq776&sw=cc302yz654&prc=582104.00"
+  
+#QrUrl <- readline(prompt="Scan Invocie: ") # try with QR Scanner
+remDr$navigate(QrUrl)
 
+
+#Shiko a ka NSLF 
 webElem <-NULL
 while(is.null(webElem)){
-  webElem <- tryCatch({remDr$findElement(using = 'name', value = "<value>")},
+  # webElem <- tryCatch({remDr$findElement(using = 'name', value = "<value>")},
+                      webElem <- tryCatch({remDr$findElement(using = "xpath", "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")},
   error = function(e){NULL})
  #loop until element with name <value> is found in <webpage url>
 }
 
+Fature <- list ()
+#ketu
+webElem <-NULL
+webElem <- remDr$findElement(using = "xpath", "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")
+Fature [["nslf"]] <- webElem$getElementText()[[1]]
+
+
+webElem <-NULL
+webElem <- remDr$findElement(using = "xpath",
+                             "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[2]/p")
+Fature [["seller_nipt"]] <- webElem$getElementText()[[1]]
+
+
+webElem <-NULL
+webElem <- remDr$findElement(using = "xpath",
+                             "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[4]/p")
+Fature [["NIVF"]] <- webElem$getElementText()[[1]]
+
+
+webElem <-NULL
+webElem <- remDr$findElement(using = "xpath",
+                             "/html/body/app-root/app-verify-invoice/div/section[1]/div/ul/li[1]")
+Fature [["seller_business_name"]] <- webElem$getElementText()[[1]]
+print(Fature)
+
+
+webElem <-NULL
+webElem <- remDr$findElement(using = "xpath",
+                             "/html/body/app-root/app-verify-invoice/div/section[1]/div/div[2]/h1/strong")
+Fature [["invoice_amount_with_vat"]] <- webElem$getElementText()[[1]]
+print(Fature)
+
+write.csv(Fature, file = "fature.csv")
 
 
 #To  stop the server
 selServ$stop()
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
