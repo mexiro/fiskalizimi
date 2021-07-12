@@ -1,0 +1,105 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+#install.packages("shiny")
+#install.packages("htmltools")
+#install.packages("listviewer")
+
+#library(shiny)
+#library(tidyverse)
+#install.packages("DT")
+library(DT)
+
+
+#### FROND ---- 
+ui <- fluidPage(
+  titlePanel("Skano faturën & kopjo detajet"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("InputURL","Skano faturën këtu:"),
+          actionButton("submit", "vazhdo"),
+    ),
+                mainPanel(DT::dataTableOutput("mytable")))
+
+)
+#####
+
+  
+server <- function(input, output) {
+
+    observeEvent(input$submit, {
+      
+      merremutineURL <- NULL
+      merremutineURL <- input$InputURL
+      
+      remDr <- remoteDriver(
+  remoteServerAddr = "localhost",
+  port = 4567L,
+  browserName = "firefox" )
+      
+      remDr$open()
+      remDr$setWindowSize(250,250)
+      remDr$setWindowPosition(1,700)
+      
+
+            
+    remDr$navigate(merremutineURL)
+#    Sys.sleep(5)
+
+webElem <-NULL
+while(is.null(webElem)){
+  # webElem <- tryCatch({remDr$findElement(using = 'name', value = "<value>")},
+                      webElem <- tryCatch({remDr$findElement(using = "xpath", "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")},
+  error = function(e){NULL})
+ #loop until element with name <value> is found in <webpage url>
+}
+
+#Krijo nje fature 
+Fature <- list ()
+
+#bera nje function te shtoje faturat
+shto_items <- function(xpathstr){
+
+  webElem <-NULL
+  webElem <- remDr$findElement(using = "xpath", xpathstr)
+  el_text <- webElem$getElementText()[[1]]
+  return (el_text)
+  
+}
+
+### LEXO Faturat ----
+Fature [["NSLF"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")
+Fature [["SellerNipt"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[2]/p")
+Fature [["NIVF"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[4]/p")
+Fature [["Seller_business_name"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[1]/div/ul/li[1]")
+Fature [["Buyer_business_name"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[6]/div/div[2]/div[1]/div/p")
+Fature [["Total_amount"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[1]/div/div[2]/h1/strong")
+######
+
+#### Shkruajfature
+# file_name <- gsub(" ", "", paste("fature" ,Fature[["NIVF"]] , ".csv"))
+# write.csv(Fature, file = file_name) 
+remDr$close()
+
+    output$text <- renderTable({Fature},  width = "100%") 
+
+
+  })
+
+      output$mytable <-   DT::renderDataTable({Fature},
+                                        options = list(scrollX = TRUE),
+                                        rownames = FALSE)
+
+}
+  
+
+
+shinyApp(ui = ui, server = server)
+
+
+
+```
