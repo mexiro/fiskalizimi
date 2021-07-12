@@ -1,10 +1,3 @@
----
-title: "R Notebook"
-output: html_notebook
----
-
-
-
 ```{r}
 #install.packages("RSelenium")
 library(RSelenium)
@@ -28,13 +21,17 @@ remDr$open()
 remDr$getStatus()
 
 
+
+
 # AUTOMATE BILLS HERE
 #QrUrl <- "https://webscraper.io/test-sites/tables" Test
 QrUrl <- "https://efiskalizimi-app.tatime.gov.al/invoice-check/#/verify?iic=62AC7297F5630E8F1164397B3C444408&tin=L62203504M&crtd=2021-07-06T16:13:50%2002:00&ord=4536&bu=td433no981&cr=kk646wq776&sw=cc302yz654&prc=582104.00"
   
 #QrUrl <- readline(prompt="Scan Invocie: ") # try with QR Scanner
-remDr$navigate(QrUrl)
 
+
+  
+  remDr$navigate(QrUrl)
 
 #Shiko a ka NSLF 
 webElem <-NULL
@@ -45,45 +42,39 @@ while(is.null(webElem)){
  #loop until element with name <value> is found in <webpage url>
 }
 
+#Krijo nje fature 
 Fature <- list ()
-#ketu
-webElem <-NULL
-webElem <- remDr$findElement(using = "xpath", "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")
-Fature [["nslf"]] <- webElem$getElementText()[[1]]
 
+#bera nje function te shtoje faturat
+shto_items <- function(xpathstr){
 
-webElem <-NULL
-webElem <- remDr$findElement(using = "xpath",
-                             "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[2]/p")
-Fature [["seller_nipt"]] <- webElem$getElementText()[[1]]
+  webElem <-NULL
+  webElem <- remDr$findElement(using = "xpath", xpathstr)
+  el_text <- webElem$getElementText()[[1]]
+  return (el_text)
+  
+}
 
+### LEXO Faturat ----
+Fature [["NSLF"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[3]/p")
+Fature [["SellerNipt"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[2]/p")
+Fature [["NIVF"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[4]/p")
+Fature [["Seller_business_name"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[1]/div/ul/li[1]")
+Fature [["Buyer_business_name"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[6]/div/div[2]/div[1]/div/p")
+Fature [["Total_amount"]] <- shto_items("/html/body/app-root/app-verify-invoice/div/section[1]/div/div[2]/h1/strong")
 
-webElem <-NULL
-webElem <- remDr$findElement(using = "xpath",
-                             "/html/body/app-root/app-verify-invoice/div/section[2]/div/div/div/div[4]/p")
-Fature [["NIVF"]] <- webElem$getElementText()[[1]]
-
-
-webElem <-NULL
-webElem <- remDr$findElement(using = "xpath",
-                             "/html/body/app-root/app-verify-invoice/div/section[1]/div/ul/li[1]")
-Fature [["seller_business_name"]] <- webElem$getElementText()[[1]]
 print(Fature)
 
 
-webElem <-NULL
-webElem <- remDr$findElement(using = "xpath",
-                             "/html/body/app-root/app-verify-invoice/div/section[1]/div/div[2]/h1/strong")
-Fature [["invoice_amount_with_vat"]] <- webElem$getElementText()[[1]]
-print(Fature)
+file_name <- gsub(" ", "", paste("fature" ,Fature[["NIVF"]] , ".csv"))
+write.csv(Fature, file = file_name)
+  
 
-write.csv(Fature, file = "fature.csv")
+
+
 
 
 #To  stop the server
 selServ$stop()
 
 ```
-
-
-
